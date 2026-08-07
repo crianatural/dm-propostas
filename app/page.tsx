@@ -30,16 +30,14 @@ const tabs: { id: Tab; label: string; short: string }[] = [
 ];
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const asset = (path: string) => `${basePath}${path}`;
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("dados");
-  const [client, setClient] = useState("Cliente de exemplo");
+  const [client, setClient] = useState("Nome do cliente");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("Endereço da obra");
   const [category, setCategory] = useState("Reforma residencial");
-  const [proposal, setProposal] = useState("DM-2026-018");
+  const [proposal, setProposal] = useState("DM-2026-001");
   const [deadline, setDeadline] = useState("90 dias corridos");
   const [validity, setValidity] = useState("10 dias");
   const [payment, setPayment] = useState("30% na contratação + 4 parcelas por etapa");
@@ -99,7 +97,7 @@ export default function Home() {
     <main className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand-logo" src={asset("/brand/dm-logo-branco.png")} alt="DM Soluções em Obras" />
+          <img className="brand-logo" src="./brand/dm-logo-branco.png" alt="DM Soluções em Obras" />
           <small>Sistema interno de propostas</small>
         </div>
 
@@ -164,13 +162,13 @@ export default function Home() {
                   <thead><tr><th>Serviço</th><th>Un.</th><th>Qtd.</th><th>Custo un.</th><th>Venda un.</th><th>Subtotal</th><th></th></tr></thead>
                   <tbody>{costs.map((item) => (
                     <tr key={item.id}>
-                      <td><input value={item.service} onChange={(e) => updateCost(item.id, "service", e.target.value)} /></td>
-                      <td><input className="small-input" value={item.unit} onChange={(e) => updateCost(item.id, "unit", e.target.value)} /></td>
-                      <td><input className="small-input" type="number" value={item.quantity} onChange={(e) => updateCost(item.id, "quantity", e.target.value)} /></td>
-                      <td><MoneyInput value={item.unitCost} onChange={(v) => updateCost(item.id, "unitCost", v)} /></td>
-                      <td><MoneyInput value={item.salePrice} onChange={(v) => updateCost(item.id, "salePrice", v)} /></td>
-                      <td className="subtotal">{brl.format(item.quantity * item.salePrice)}</td>
-                      <td><button className="remove" aria-label={`Remover ${item.service}`} onClick={() => setCosts((current) => current.filter((cost) => cost.id !== item.id))}>×</button></td>
+                      <td data-label="Serviço"><input value={item.service} onChange={(e) => updateCost(item.id, "service", e.target.value)} /></td>
+                      <td data-label="Unidade"><input className="small-input" value={item.unit} onChange={(e) => updateCost(item.id, "unit", e.target.value)} /></td>
+                      <td data-label="Quantidade"><input className="small-input" type="number" value={item.quantity} onChange={(e) => updateCost(item.id, "quantity", e.target.value)} /></td>
+                      <td data-label="Custo unitário"><MoneyInput value={item.unitCost} onChange={(v) => updateCost(item.id, "unitCost", v)} /></td>
+                      <td data-label="Venda unitária"><MoneyInput value={item.salePrice} onChange={(v) => updateCost(item.id, "salePrice", v)} /></td>
+                      <td data-label="Subtotal" className="subtotal">{brl.format(item.quantity * item.salePrice)}</td>
+                      <td className="remove-cell"><button className="remove" aria-label={`Remover ${item.service}`} onClick={() => setCosts((current) => current.filter((cost) => cost.id !== item.id))}>×</button></td>
                     </tr>
                   ))}</tbody>
                 </table>
@@ -231,23 +229,23 @@ export default function Home() {
               </div>
               <article className="proposal-sheet">
                 <div className="cover-image">
-                  <img className="cover-print-base" src={asset("/brand/cover-print-base.svg")} alt="" aria-hidden="true" />
-                  {image ? <img src={image} alt="Casa ou obra do cliente" /> : <div className="cover-placeholder"><img src={asset("/brand/dm-logo-dourado.png")} alt="DM Soluções em Obras" /><p>Adicione uma imagem da obra para personalizar esta capa</p></div>}
+                  <img className="cover-print-base" src="./brand/cover-print-base.svg" alt="" aria-hidden="true" />
+                  {image ? <img src={image} alt="Casa ou obra do cliente" /> : <div className="cover-placeholder"><img src="./brand/dm-logo-dourado.png" alt="DM Soluções em Obras" /><p>Adicione uma imagem da obra para personalizar esta capa</p></div>}
                   <div className="cover-gradient" />
                   <div className="cover-gold-corner" />
                   <div className="cover-navy-panel" />
-                  <div className="cover-brand"><img src={asset("/brand/dm-logo-branco.png")} alt="DM Soluções em Obras" /></div>
+                  <div className="cover-brand"><img src="./brand/dm-logo-branco.png" alt="DM Soluções em Obras" /></div>
                   <div className="cover-copy"><p>PROPOSTA COMERCIAL</p><h1>{category}</h1><span>{address}</span></div>
                   <div className="cover-client"><span>CLIENTE</span><strong>{client}</strong><small>{proposal}</small></div>
                 </div>
                 <div className="proposal-body proposal-print-page scope-page">
-                    <div className="proposal-meta"><div><span>PREPARADA PARA</span><strong>{client}</strong></div><div><span>PROPOSTA</span><strong>{proposal}</strong></div><div><span>EMISSÃO</span><strong>{new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date()).replace(" de ", " ").replace(" de ", " ").toUpperCase()}</strong></div></div>
+                    <div className="proposal-meta"><div><span>PREPARADA PARA</span><strong>{client}</strong></div><div><span>PROPOSTA</span><strong>{proposal}</strong></div><div><span>EMISSÃO</span><strong>06 AGO 2026</strong></div></div>
                     <section><p className="section-number">01 / ESCOPO DOS SERVIÇOS</p><h2>Uma execução organizada, do início à entrega.</h2><p>{scope}</p><div className="commercial-services">{costs.map((item, index) => <span key={item.id}><b>{String(index + 1).padStart(2, "0")}</b>{item.service}</span>)}</div></section>
                 </div>
                 <div className="proposal-body proposal-print-page terms-page">
                     <section className="conditions"><p className="section-number">02 / CONDIÇÕES</p><div className="condition-grid"><div><span>PRAZO PREVISTO</span><strong>{deadline}</strong></div><div><span>VALIDADE</span><strong>{validity}</strong></div><div><span>PAGAMENTO</span><strong>{payment}</strong></div></div><p className="muted"><strong>Não contemplado:</strong> {notIncluded}</p></section>
                     <section className="investment"><div><p className="section-number">03 / INVESTIMENTO</p><h2>Valor total da proposta</h2><p>Materiais, mão de obra e acompanhamento conforme escopo.</p></div><strong>{brl.format(totals.sale)}</strong></section>
-                    <footer><img className="footer-logo" src={asset("/brand/dm-logo-azul.png")} alt="DM Soluções em Obras" /><span>Contato oficial da DM Construções</span></footer>
+                    <footer><img className="footer-logo" src="./brand/dm-logo-azul.png" alt="DM Soluções em Obras" /><span>Contato comercial da DM Construções</span></footer>
                 </div>
               </article>
             </div>
