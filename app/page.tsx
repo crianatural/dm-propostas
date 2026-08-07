@@ -65,16 +65,60 @@ export default function Home() {
       : item));
   };
 
-  const onUpload = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) return;
+  const prepareImage = (file: File) => new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
     reader.onload = () => {
-      setImage(String(reader.result));
-      setImageName(file.name);
+      const source = String(reader.result);
+      const preview = new Image();
+      preview.onerror = () => resolve(source);
+      preview.onload = () => {
+        const maxSide = 2000;
+        const scale = Math.min(1, maxSide / Math.max(preview.naturalWidth, preview.naturalHeight));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(preview.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(preview.naturalHeight * scale));
+        const context = canvas.getContext("2d");
+        if (!context) return resolve(source);
+        context.drawImage(preview, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.88));
+      };
+      preview.src = source;
     };
     reader.readAsDataURL(file);
+  });
+
+  const applyImage = async (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    try {
+      setImage(await prepareImage(file));
+      setImageName(file.name);
+    } catch {
+      setImageName("");
+    }
+  };
+
+  const onUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await applyImage(file);
+  };
+
+  const handlePrint = async () => {
+    const images = Array.from(document.querySelectorAll<HTMLImageElement>(".proposal-sheet img"));
+    await Promise.all(images.map(async (item) => {
+      if (item.complete && item.naturalWidth > 0) return;
+      try {
+        await item.decode();
+      } catch {
+        await new Promise<void>((resolve) => {
+          item.addEventListener("load", () => resolve(), { once: true });
+          item.addEventListener("error", () => resolve(), { once: true });
+        });
+      }
+    }));
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    window.print();
   };
 
   const addItem = () => {
@@ -196,13 +240,11 @@ export default function Home() {
             <div className="panel page-enter">
               <SectionIntro eyebrow="Etapa 04" title="Imagem da casa ou obra" text="Escolha uma foto do local. Ela será aplicada na capa da proposta para aumentar o impacto da apresentação." />
               <div className={`upload-layout ${image ? "has-image" : ""}`}>
-                <div className="upload-box" onClick={() => fileRef.current?.click()} onDragOver={(e) => e.preventDefault()} onDrop={(e) => {
+                <div className="upload-box" onClick={() => fileRef.current?.click()} onDragOver={(e) => e.preventDefault()} onDrop={async (e) => {
                   e.preventDefault();
                   const file = e.dataTransfer.files?.[0];
-                  if (!file?.type.startsWith("image/")) return;
-                  const reader = new FileReader();
-                  reader.onload = () => { setImage(String(reader.result)); setImageName(file.name); };
-                  reader.readAsDataURL(file);
+                  if (!file) return;
+                  await applyImage(file);
                 }}>
                   {image ? <img src={image} alt="Prévia da obra enviada" /> : <div className="upload-empty"><span>＋</span><strong>Enviar imagem da obra</strong><p>Arraste uma foto ou clique para selecionar</p><small>JPG, PNG ou WEBP • até 10 MB</small></div>}
                   <input ref={fileRef} hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={onUpload} />
@@ -225,12 +267,12 @@ export default function Home() {
               <div className="preview-toolbar">
                 <div><span>PRÉVIA DO CLIENTE</span><strong>Somente dados comerciais</strong></div>
                 <button className="button ghost" onClick={() => setTab("dados")}>Editar dados</button>
-                <button className="button gold" onClick={() => window.print()}>Gerar PDF</button>
+                <button className="button gold" onClick={handlePrint}>Gerar PDF</button>
               </div>
               <article className="proposal-sheet">
-                <div className="cover-image">
+                <div className="cover-image print-page">
                   <img className="cover-print-base" src="./brand/cover-print-base.svg" alt="" aria-hidden="true" />
-                  {image ? <img src={image} alt="Casa ou obra do cliente" /> : <div className="cover-placeholder"><img src="./brand/dm-logo-dourado.png" alt="DM Soluções em Obras" /><p>Adicione uma imagem da obra para personalizar esta capa</p></div>}
+                  {image ? <img className="cover-photo" src={image} alt="Casa ou obra do cliente" loading="eager" decoding="sync" /> : <div className="cover-placeholder"><img src="./brand/dm-logo-dourado.png" alt="DM Soluções em Obras" /><p>Adicione uma imagem da obra para personalizar esta capa</p></div>}
                   <div className="cover-gradient" />
                   <div className="cover-gold-corner" />
                   <div className="cover-navy-panel" />
@@ -238,11 +280,11 @@ export default function Home() {
                   <div className="cover-copy"><p>PROPOSTA COMERCIAL</p><h1>{category}</h1><span>{address}</span></div>
                   <div className="cover-client"><span>CLIENTE</span><strong>{client}</strong><small>{proposal}</small></div>
                 </div>
-                <div className="proposal-body proposal-print-page scope-page">
+                <div className="proposal-body proposal-print-page print-page scope-page">
                     <div className="proposal-meta"><div><span>PREPARADA PARA</span><strong>{client}</strong></div><div><span>PROPOSTA</span><strong>{proposal}</strong></div><div><span>EMISSÃO</span><strong>06 AGO 2026</strong></div></div>
                     <section><p className="section-number">01 / ESCOPO DOS SERVIÇOS</p><h2>Uma execução organizada, do início à entrega.</h2><p>{scope}</p><div className="commercial-services">{costs.map((item, index) => <span key={item.id}><b>{String(index + 1).padStart(2, "0")}</b>{item.service}</span>)}</div></section>
                 </div>
-                <div className="proposal-body proposal-print-page terms-page">
+                <div className="proposal-body proposal-print-page print-page terms-page">
                     <section className="conditions"><p className="section-number">02 / CONDIÇÕES</p><div className="condition-grid"><div><span>PRAZO PREVISTO</span><strong>{deadline}</strong></div><div><span>VALIDADE</span><strong>{validity}</strong></div><div><span>PAGAMENTO</span><strong>{payment}</strong></div></div><p className="muted"><strong>Não contemplado:</strong> {notIncluded}</p></section>
                     <section className="investment"><div><p className="section-number">03 / INVESTIMENTO</p><h2>Valor total da proposta</h2><p>Materiais, mão de obra e acompanhamento conforme escopo.</p></div><strong>{brl.format(totals.sale)}</strong></section>
                     <footer><img className="footer-logo" src="./brand/dm-logo-azul.png" alt="DM Soluções em Obras" /><span>Contato comercial da DM Construções</span></footer>
